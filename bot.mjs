@@ -26,15 +26,19 @@ app.listen(3000, () => {
 });
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.DirectMessages],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.DirectMessages, GatewayIntentBits.GuildMembers],
 });
 
-// Register slash command in a single guild for instant updates
+// Register slash commands in a single guild
 async function registerCommands() {
   const commands = [
     new SlashCommandBuilder()
       .setName('getperson')
-      .setDescription('Get a randomly assigned person to invite.')
+      .setDescription('Get a randomly assigned person to invite.'),
+
+    new SlashCommandBuilder()
+      .setName('myassigned')
+      .setDescription('View all the people that have been assigned to you.')
   ].map(command => command.toJSON());
 
   const rest = new REST({ version: '10' }).setToken(TOKEN);
@@ -57,9 +61,8 @@ client.once('ready', () => {
 
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
-  if (interaction.commandName !== 'getperson') return;
 
-  // Load people and assigned lists
+  // Load data
   const allPeople = fs.readFileSync(PEOPLE_FILE, 'utf8')
     .split('\n')
     .map(id => id.trim())
@@ -67,61 +70,98 @@ client.on('interactionCreate', async interaction => {
 
   const assignedPeople = fs.readFileSync(ASSIGNED_FILE, 'utf8')
     .split('\n')
-    .map(id => id.trim())
+    .map(line => line.trim())
     .filter(Boolean);
 
-  // Find unassigned IDs
-  const unassigned = allPeople.filter(id => !assignedPeople.includes(id));
-
-  // Load stats
   const stats = JSON.parse(fs.readFileSync(STATS_FILE, 'utf8'));
 
-  if (unassigned.length === 0) {
+  if (interaction.commandName === 'getperson') {
+    const unassigned = allPeople.filter(id => !assignedPeople.some(ap => ap.split(':')[1] === id));
+
+    if (unassigned.length === 0) {
+      await interaction.reply({
+        content: '⚠️ No more people available for assignment.',
+        ephemeral: true
+      });
+
+      const sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]);
+      const top5 = sorted.slice(0, 5);
+
+      let top5Text = top5.length > 0
+        ? top5.map(([userId, count], i) => `${i + 1}. <@${userId}> — ${count} assigned`).join('\n')
+        : 'No assignments recorded.';
+
+      let fullListText = sorted.length > 0
+        ? sorted.map(([userId, count]) => `<@${userId}> — ${count}`).join('\n')
+        : 'No assignments recorded.';
+
+      try {
+        const owner = await client.users.fetch(OWNER_ID);
+        await owner.send(
+          `📢 The invite list is finished — no more people to assign.\n\n🏆 **Top 5 assigners:**\n${top5Text}\n\n📋 **Full participant list:**\n${fullListText}`
+        );
+      } catch (err) {
+        console.error('Failed to DM owner:', err);
+      }
+      return;
+    }
+
+    // Pick random unassigned
+    const chosenID = unassigned[Math.floor(Math.random() * unassigned.length)];
+
+    // Get username
+    let chosenUser;
+    try {
+      chosenUser = await client.users.fetch(chosenID);
+    } catch {
+      chosenUser = { username: 'Unknown User', id: chosenID };
+    }
+
+    // Save to assigned.txt in format: assignerID:assignedID
+    fs.appendFileSync(ASSIGNED_FILE, `${interaction.user.id}:${chosenID}\n`);
+
+    // Update stats
+    stats[interaction.user.id] = (stats[interaction.user.id] || 0) + 1;
+    fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
+
+    // Reply with mention + username
     await interaction.reply({
-      content: '⚠️ No more people available for assignment.',
+      content: `✅ You have been assigned: <@${chosenID}> (${chosenUser.username})`,
+      allowedMentions: { users: [chosenID] },
       ephemeral: true
     });
 
-    // Calculate top 5 assigners
-    const sorted = Object.entries(stats)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
-
-    let top5Text = sorted.length > 0
-      ? sorted.map(([userId, count], i) => `${i + 1}. <@${userId}> — ${count} assigned`).join('\n')
-      : 'No assignments recorded.';
-
-    // DM owner
-    try {
-      const owner = await client.users.fetch(OWNER_ID);
-      await owner.send(
-        `📢 The invite list is finished — no more people to assign.\n\n🏆 **Top 5 assigners:**\n${top5Text}`
-      );
-    } catch (err) {
-      console.error('Failed to DM owner:', err);
-    }
-    return;
+    console.log(`Assigned ${chosenID} (${chosenUser.username}) to ${interaction.user.tag} (${unassigned.length - 1} left)`);
   }
 
-  // Pick a random unassigned ID
-  const chosenID = unassigned[Math.floor(Math.random() * unassigned.length)];
+  if (interaction.commandName === 'myassigned') {
+    const myAssigned = assignedPeople
+      .filter(line => line.split(':')[0] === interaction.user.id)
+      .map(line => line.split(':')[1]);
 
-  // Save to assigned.txt
-  fs.appendFileSync(ASSIGNED_FILE, `${chosenID}\n`);
+    if (myAssigned.length === 0) {
+      await interaction.reply({
+        content: 'ℹ️ You haven’t been assigned anyone yet.',
+        ephemeral: true
+      });
+      return;
+    }
 
-  // Update stats
-  const userId = interaction.user.id;
-  stats[userId] = (stats[userId] || 0) + 1;
-  fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
+    // Fetch usernames for all assigned
+    const displayList = await Promise.all(myAssigned.map(async id => {
+      try {
+        const user = await client.users.fetch(id);
+        return `<@${id}> (${user.username})`;
+      } catch {
+        return `<@${id}> (Unknown User)`;
+      }
+    }));
 
-  // Reply with clickable mention
-  await interaction.reply({
-    content: `✅ You have been assigned: <@${chosenID}>`,
-    allowedMentions: { users: [chosenID] },
-    ephemeral: true
-  });
-
-  console.log(`Assigned ${chosenID} to ${interaction.user.tag} (${unassigned.length - 1} left)`);
+    await interaction.reply({
+      content: `📋 People assigned to you:\n${displayList.join('\n')}`,
+      ephemeral: true
+    });
+  }
 });
 
 await registerCommands();
