@@ -27,6 +27,17 @@ async function runBirthdayJob(client) {
 
     const daily = require('../commands/daily');
 
+    // Try to resolve birthday channel once per run
+    const birthdayChannelId = process.env.BIRTHDAY_CHANNEL_ID;
+    let birthdayChannel = null;
+    if (birthdayChannelId) {
+        try {
+            birthdayChannel = await client.channels.fetch(birthdayChannelId);
+        } catch (err) {
+            console.error('Failed to fetch BIRTHDAY_CHANNEL_ID channel:', err);
+        }
+    }
+
     for (const userId of Object.keys(birthdays)) {
         const { month, day } = birthdays[userId];
         if (month !== todayMonth || day !== todayDay) continue;
@@ -48,12 +59,24 @@ async function runBirthdayJob(client) {
                 console.error(`Failed to auto-claim daily for ${user.username} (${userId})`, err);
             }
 
-            const baseMessage = `<a:spinningcake:1405132228823875637> Happy Birthday, ${user.username}! 🎉\n` +
+            const content = `<a:spinningcake:1405132228823875637> Happy Birthday, <@${userId}>! 🎉\n` +
                 `-------------------------\n` +
                 `${autoClaimed ? '🎁 Your daily rewards have been automatically claimed as a birthday treat!\n' : ''}` +
                 `-# Till next year~`;
 
-            await user.send({ content: baseMessage }).catch(() => {});
+            let sent = false;
+            if (birthdayChannel) {
+                try {
+                    await birthdayChannel.send({ content });
+                    sent = true;
+                } catch (err) {
+                    console.error('Failed to send birthday message to channel, will try DM:', err);
+                }
+            }
+
+            if (!sent) {
+                await user.send({ content }).catch(() => {});
+            }
         } catch (err) {
             console.error(`Error processing birthday for user ${userId}:`, err);
         }
