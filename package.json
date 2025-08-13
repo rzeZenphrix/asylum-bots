@@ -1,25 +1,31 @@
 {
-  "name": "asylum-bots",
+  "name": "asylum",
   "version": "1.0.0",
-  "description": "",
-  "homepage": "https://github.com/rzeZenphrix/asylum-bots#readme",
+  "description": "A multi-feature Discord bot with modular cogs.",
+  "homepage": "https://github.com/rzeZenphrix/asylum#readme",
   "bugs": {
-    "url": "https://github.com/rzeZenphrix/asylum-bots/issues"
+    "url": "https://github.com/rzeZenphrix/asylum/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rzeZenphrix/asylum-bots.git"
+    "url": "git+https://github.com/rzeZenphrix/asylum.git"
   },
   "license": "ISC",
-  "author": "",
-  "type": "module",
-  "main": "bot.mjs",
+  "author": "Emmanuel Okenwa",
+  "type": "commonjs",
+  "main": "index.js",
   "scripts": {
-    "start": "node bot.mjs"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "lint": "eslint ."
   },
   "dependencies": {
     "discord.js": "^14.15.3",
     "dotenv": "^16.4.5",
     "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "eslint": "^9.33.0",
+    "nodemon": "^3.1.10"
   }
 }
