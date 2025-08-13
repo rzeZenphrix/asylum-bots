@@ -53,7 +53,7 @@ async function claimDaily(user, interaction = null, channel = null) {
 
         if (interaction) return interaction.reply({ content: message });
         if (channel) return channel.send(message);
-        return;
+        return { claimed: false, message };
     }
 
     let streakMessage = '';
@@ -92,6 +92,8 @@ async function claimDaily(user, interaction = null, channel = null) {
 
     if (interaction) await interaction.reply({ content: message });
     if (channel) channel.send(message);
+
+    return { claimed: true, message, rewards: { asylumReward, xpReward, triviaReward, streak: userData.streak } };
 }
 
 module.exports = {
@@ -106,5 +108,8 @@ module.exports = {
     async handlePrefixCommand(message) {
         if (!message.content.startsWith(`${prefix}daily`)) return;
         await claimDaily(message.author, null, message.channel);
-    }
+    },
+
+    // Export claimDaily for reuse (e.g., birthday scheduler)
+    claimDaily
 };

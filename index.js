@@ -56,6 +56,10 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 // === Events ===
 client.once(Events.ClientReady, c => {
     console.log(`Successfully logged in as ${c.user.tag}`);
+
+    // Start birthday scheduler
+    const { initBirthdayScheduler } = require('./src/utils/birthdayScheduler');
+    initBirthdayScheduler(client);
 });
 
 // Slash commands
