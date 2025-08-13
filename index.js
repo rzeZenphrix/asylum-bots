@@ -1,8 +1,9 @@
-// index.js
 const fs = require('fs');
 const path = require('path');
 const { Client, Collection, GatewayIntentBits, REST, Routes, Events } = require('discord.js');
 require('dotenv').config();
+
+const prefix = 's.';
 
 // === Client Setup ===
 const client = new Client({
@@ -36,7 +37,7 @@ for (const file of commandFiles) {
     }
 }
 
-// === Register Commands ===
+// === Register Slash Commands ===
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 (async () => {
@@ -57,6 +58,7 @@ client.once(Events.ClientReady, c => {
     console.log(`Successfully logged in as ${c.user.tag}`);
 });
 
+// Slash commands
 client.on(Events.InteractionCreate, async interaction => {
     if (!interaction.isChatInputCommand()) return;
 
@@ -80,7 +82,26 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 });
 
+// === Prefix Commands ===
+client.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
+    if (!message.content.startsWith(prefix)) return;
+
+    const args = message.content.slice(prefix.length).trim().split(/ +/);
+    const commandName = args.shift().toLowerCase();
+
+    const command = client.commands.get(commandName);
+    if (!command || !command.handlePrefixCommand) return;
+
+    try {
+        await command.handlePrefixCommand(message, args);
+    } catch (err) {
+        console.error(`Error executing prefix command ${commandName}:`, err.stack || err);
+        message.reply('⚠️ There was an error while executing this command.');
+    }
+});
+
 // === Login ===
 client.login(process.env.TOKEN)
-    .then(() => console.log('starting...'))
+    .then(() => console.log('Starting...'))
     .catch(err => console.error('Failed to log in:', err.stack || err));

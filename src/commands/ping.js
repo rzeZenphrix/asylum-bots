@@ -4,7 +4,8 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('ping')
         .setDescription('Check latency.'),
-        
+
+    // Slash command
     async execute(interaction) {
         try {
             const sent = await interaction.reply({ 
@@ -31,6 +32,24 @@ module.exports = {
                     ephemeral: true 
                 }).catch(err => console.error('⚠️ Failed to send error message:', err));
             }
+        }
+    },
+
+    // Prefix command
+    async handlePrefixCommand(message, args) {
+        try {
+            const sent = await message.channel.send('<a:fidgetspinner:1405112906781298749> Calculating response time...');
+            
+            const latency = sent.createdTimestamp - message.createdTimestamp;
+            const apiPing = Math.round(message.client.ws.ping);
+
+            console.log(`✅ s.ping used by ${message.author.tag} | Latency: ${latency}ms | API: ${apiPing}ms`);
+
+            await sent.edit(`**Speed Report:**\n- Message latency: **${latency}ms**\n- API latency: **${apiPing}ms**\n\nNot bad, huh? <:wink:1405110756692721725>`);
+
+        } catch (error) {
+            console.error('❌ Error in s.ping command:', error);
+            await message.channel.send('⚠️ Oops! Something went wrong while running `s.ping`.');
         }
     }
 };
