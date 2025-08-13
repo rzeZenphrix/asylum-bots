@@ -2,6 +2,8 @@ const { SlashCommandBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
+const e = (name) => (global.emojis && global.emojis[name]) || '';
+
 const dataFile = path.join(__dirname, '../../data/daily.json');
 const prefix = 's.';
 
@@ -48,7 +50,7 @@ async function claimDaily(user, interaction = null, channel = null) {
         nextClaim.setDate(nextClaim.getDate() + 1);
         const timestamp = Math.floor(nextClaim.getTime() / 1000);
 
-        const message = `<a:timer:1405118895592837150> ${user}, you’ve already claimed your daily rewards.\n` +
+        const message = `${e('timer')} ${user}, you’ve already claimed your daily rewards.\n` +
                         `You can claim again <t:${timestamp}:R>!`;
 
         if (interaction) return interaction.reply({ content: message });
@@ -84,11 +86,11 @@ async function claimDaily(user, interaction = null, channel = null) {
         `${streakMessage ? streakMessage + '\n\n' : ''}` +
         `**Daily Rewards Claimed!**\n` +
         `-------------------------\n` +
-        `<:asylum_coin:1405120064490836091>・**Asylum Coins:** ${asylumReward}\n` +
+        `${e('asylum_coin')}・**Asylum Coins:** ${asylumReward}\n` +
         `📚・**XP:** ${xpReward}\n` +
         `🎟・**Trivia Passes:** ${triviaReward}\n` +
         `-------------------------\n` +
-        `<a:fire:1405120381374955551>・**Streak:** ${userData.streak} day(s)\n`;
+        `${e('fire')}・**Streak:** ${userData.streak} day(s)\n`;
 
     if (interaction) await interaction.reply({ content: message });
     if (channel) channel.send(message);

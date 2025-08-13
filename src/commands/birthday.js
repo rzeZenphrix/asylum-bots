@@ -51,7 +51,7 @@ async function setBirthday(user, date, interaction = null, channel = null) {
 
     // Optional: Happy birthday if today
     if (now.getMonth() + 1 === month && now.getDate() === day) {
-        message = `<a:spinningcake:1405132228823875637> Happy Birthday, ${username}! 🎉\n` +
+        message = `${(global.emojis && global.emojis['spinningcake']) || ''} Happy Birthday, ${username}! 🎉\n` +
                   `-------------------------\n-# Till next year~`;
     }
 

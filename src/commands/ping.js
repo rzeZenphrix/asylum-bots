@@ -9,7 +9,7 @@ module.exports = {
     async execute(interaction) {
         try {
             const sent = await interaction.reply({ 
-                content: '<a:fidgetspinner:1405112906781298749> Calculating response time...', 
+                content: `${(global.emojis && global.emojis['fidgetspinner']) || ''} Calculating response time...`, 
                 fetchReply: true, 
                 ephemeral: true 
             });
@@ -20,7 +20,7 @@ module.exports = {
             console.log(`✅ /ping used by ${interaction.user.tag} | Latency: ${latency}ms | API: ${apiPing}ms`);
 
             await interaction.followUp({ 
-                content: `**Speed Report:**\n- Message latency: **${latency}ms**\n- API latency: **${apiPing}ms**\n\nNot bad, huh? <:wink:1405110756692721725>`, 
+                content: `**Speed Report:**\n- Message latency: **${latency}ms**\n- API latency: **${apiPing}ms**\n\nNot bad, huh? ${(global.emojis && global.emojis['wink']) || ''}`, 
                 ephemeral: true 
             });
 
@@ -38,14 +38,14 @@ module.exports = {
     // Prefix command
     async handlePrefixCommand(message, args) {
         try {
-            const sent = await message.channel.send('<a:fidgetspinner:1405112906781298749> Calculating response time...');
+            const sent = await message.channel.send(`${(global.emojis && global.emojis['fidgetspinner']) || ''} Calculating response time...`);
             
             const latency = sent.createdTimestamp - message.createdTimestamp;
             const apiPing = Math.round(message.client.ws.ping);
 
             console.log(`✅ s.ping used by ${message.author.tag} | Latency: ${latency}ms | API: ${apiPing}ms`);
 
-            await sent.edit(`**Speed Report:**\n- Message latency: **${latency}ms**\n- API latency: **${apiPing}ms**\n\nNot bad, huh? <:wink:1405110756692721725>`);
+            await sent.edit(`**Speed Report:**\n- Message latency: **${latency}ms**\n- API latency: **${apiPing}ms**\n\nNot bad, huh? ${(global.emojis && global.emojis['wink']) || ''}`);
 
         } catch (error) {
             console.error('❌ Error in s.ping command:', error);

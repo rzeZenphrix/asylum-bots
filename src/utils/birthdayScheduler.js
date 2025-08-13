@@ -4,6 +4,10 @@ const path = require('path');
 const birthdaysFile = path.join(__dirname, '../../data/birthdays.json');
 const dailyDataFile = path.join(__dirname, '../../data/daily.json');
 
+function saveJson(filePath, data) {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+}
+
 function loadJson(filePath) {
     if (!fs.existsSync(filePath)) return {};
     try {
@@ -24,6 +28,7 @@ function getTodayMonthDay() {
 async function runBirthdayJob(client) {
     const birthdays = loadJson(birthdaysFile);
     const { month: todayMonth, day: todayDay, todayString } = getTodayMonthDay();
+const currentYear = new Date().getFullYear();
 
     const daily = require('../commands/daily');
 
@@ -39,8 +44,10 @@ async function runBirthdayJob(client) {
     }
 
     for (const userId of Object.keys(birthdays)) {
-        const { month, day } = birthdays[userId];
+        const entry = birthdays[userId] || {};
+        const { month, day } = entry;
         if (month !== todayMonth || day !== todayDay) continue;
+        if (entry.lastSentYear === currentYear) continue;
 
         try {
             const user = await client.users.fetch(userId);
@@ -59,7 +66,7 @@ async function runBirthdayJob(client) {
                 console.error(`Failed to auto-claim daily for ${user.username} (${userId})`, err);
             }
 
-            const content = `<a:spinningcake:1405132228823875637> Happy Birthday, <@${userId}>! 🎉\n` +
+            const content = `${(global.emojis && global.emojis['spinningcake']) || ''} Happy Birthday, <@${userId}>! 🎉\n` +
                 `-------------------------\n` +
                 `${autoClaimed ? '🎁 Your daily rewards have been automatically claimed as a birthday treat!\n' : ''}` +
                 `-# Till next year~`;
@@ -77,10 +84,16 @@ async function runBirthdayJob(client) {
             if (!sent) {
                 await user.send({ content }).catch(() => {});
             }
+
+            // Mark sent for this year
+            birthdays[userId] = { ...entry, lastSentYear: currentYear };
         } catch (err) {
             console.error(`Error processing birthday for user ${userId}:`, err);
         }
     }
+
+    // Persist updates to avoid resending on restart
+    try { saveJson(birthdaysFile, birthdays); } catch (e) { console.error('Failed to save birthdays.json:', e); }
 }
 
 function scheduleNextMidnight(callback) {

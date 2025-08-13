@@ -17,6 +17,10 @@ const client = new Client({
 
 client.commands = new Collection();
 
+// === Load Emojis ===
+const { initEmojis } = require('./src/utils/emojiLoader');
+initEmojis();
+
 // === Load Commands ===
 const commandsPath = path.join(__dirname, 'src/commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
